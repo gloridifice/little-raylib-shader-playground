@@ -9,6 +9,7 @@
 #include "baleine_type/primitive.h"
 #include "baleine_type/memory.h"
 #include "render/mod.h"
+#include "raylib_helper.h"
 
 using namespace baleine;
 
@@ -89,8 +90,8 @@ class EngineCore {
         sceneHeight);
 
     Camera camera = {
-        (Vector3){0.0f, 14.0f, 14.0f},
-        (Vector3){0.0f, 0.5f, 0.0f},
+        (Vector3){0.0f, 20.0f, 48.0f},
+        (Vector3){0.0f, 1.5f, 0.0f},
         (Vector3){0.0f, 1.0f, 0.0f},
         45.0f,
         CAMERA_PERSPECTIVE
@@ -107,13 +108,33 @@ class EngineCore {
     f32 specularCoefficient = 0.6f;
     Vector4 ambient = {0.1f, 0.1f, 0.1f, 1.f};
 
-    Matrix modelMatrix = MatrixTranslate(0, 20.0, 0);
-
-    Vector3 rayPos = Vector3(0., 25., 0.);
+    Transform directionalLightTransform = {
+        .translation = Vector3{0.0, 22.0, 0.0},
+        .rotation = QuaternionFromAxisAngle(Vector3{0.0, -1.0, 0.0}, 0.f),
+        .scale = Vector3One(),
+    };
     Model car;
 
     void Update() {
-        UpdateCamera(&camera, CAMERA_ORBITAL);
+        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+            HideCursor();
+        }
+        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) {
+            ShowCursor();
+        }
+        if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+            UpdateCamera(&camera, CAMERA_FIRST_PERSON);
+            if (IsKeyDown(KEY_SPACE)) {
+                camera.position.y += 10.0f * GetFrameTime();
+            }
+            if (IsKeyDown(KEY_LEFT_SHIFT)) {
+                camera.position.y -= 10.0f * GetFrameTime();
+            }
+        }
+
+        directionalLight.direction = Vector3RotateByQuaternion(
+            (Vector3){0.0f, 0.0f, -1.0f},
+            directionalLightTransform.rotation);
         blinnPhongShader->UpdateViewWorldPos(camera.position);
         blinnPhongShader->UpdateDiffuseCoefficient(diffuseCoefficient);
         blinnPhongShader->UpdateSpecularCoefficient(specularCoefficient);
@@ -138,14 +159,14 @@ class EngineCore {
         DrawModel(car, Vector3Zero(), .1f, WHITE);
         blinnPhongShader->EndMode();
 
-        DrawLine3D(rayPos,
+        DrawLine3D(directionalLightTransform.translation,
                    Vector3Add(
                        Vector3Scale(
                            Vector3Normalize(directionalLight.direction),
                            5.0f),
-                       rayPos),
+                       directionalLightTransform.translation),
                    BLUE);
-        DrawSphere(rayPos, .7f, BLUE);
+        DrawSphere(directionalLightTransform.translation, .7f, BLUE);
 
         EndMode3D();
         // #### 3D END #####
@@ -160,59 +181,77 @@ class EngineCore {
 
         ImGui::DockSpaceOverViewport(); // Make a full window docking space
 
-        ImGui::Begin("Scene");
+        ImGuiWindowRegion("Scene",
+                          [&] {
+                              auto regionSize = ImGui::GetContentRegionAvail();
+                              auto windowPos = ImGui::GetWindowPos();
+                              auto regionRelative =
+                                  ImGui::GetWindowContentRegionMin();
+                              sceneWidth = (i32)regionSize.x;
+                              sceneHeight = (i32)regionSize.y;
 
-        auto regionSize = ImGui::GetContentRegionAvail();
-        sceneWidth = (i32)regionSize.x;
-        sceneHeight = (i32)regionSize.y;
+                              ImGui::Image(
+                                  (ImTextureID)(uintptr_t)sceneRenderTarget.
+                                  texture.id,
+                                  regionSize,
+                                  ImVec2(0, 1),
+                                  ImVec2(1, 0)
+                              );
 
-        ImGui::Image((ImTextureID)(uintptr_t)sceneRenderTarget.texture.id,
-                     regionSize,
-                     ImVec2(0, 1),
-                     ImVec2(1, 0)
-        );
+                              ImGuizmo::SetOrthographic(false);
+                              ImGuizmo::BeginFrame();
+                              ImGuizmo::SetDrawlist(
+                                  ImGui::GetCurrentWindow()->DrawList);
 
-        ImGuizmo::SetOrthographic(false);
-        ImGuizmo::BeginFrame();
-        ImGuizmo::SetDrawlist(ImGui::GetCurrentWindow()->DrawList);
-        ImGuizmo::SetRect(0,
-                          0,
-                          (float)GetScreenWidth(),
-                          (float)GetScreenHeight());
+                              ImGuizmo::SetRect(regionRelative.x + windowPos.x,
+                                                regionRelative.y + windowPos.y,
+                                                regionSize.x,
+                                                regionSize.y
+                              );
 
-        ManipulateMatrix(modelMatrix,
-                         camera,
-                         ImGuizmo::TRANSLATE,
-                         ImGuizmo::WORLD);
+                              ManipulateTransform(directionalLightTransform,
+                                                  camera,
+                                                  ImGuizmo::ROTATE,
+                                                  ImGuizmo::WORLD);
+                          });
 
-        ImGui::End();
+        ImGuiWindowRegion("Info",
+                          [&] {
+                              ImGui::LabelText("Camera Position",
+                                               "%.2f, %.2f, %.2f",
+                                               camera.position.x,
+                                               camera.position.y,
+                                               camera.position.z);
 
-        ImGui::Begin("Info");
-        ImGui::LabelText(ImGuizmo::IsUsing() ? "Using" : "Not Using", "");
+                              ImGui::DragFloat3("Light Direction",
+                                                reinterpret_cast<float*>(&
+                                                    directionalLight.
+                                                    direction));
+                              ImGui::SliderFloat("Diffuse Coefficient",
+                                                 &diffuseCoefficient,
+                                                 0.0,
+                                                 1.0);
+                              ImGui::SliderFloat("Specular Coefficient",
+                                                 &specularCoefficient,
+                                                 0.0,
+                                                 1.0);
 
-        ImGui::DragFloat3("Light Direction",
-                          reinterpret_cast<float*>(&directionalLight.
-                              direction));
-        ImGui::SliderFloat("Diffuse Coefficient",
-                           &diffuseCoefficient,
-                           0.0,
-                           1.0);
-        ImGui::SliderFloat("Specular Coefficient",
-                           &specularCoefficient,
-                           0.0,
-                           1.0);
-
-        ImGui::DragFloat("Specular Power", &specularPower, 0.5, 1.0, 20.0);
-        if (ImGui::CollapsingHeader("Light Color")) {
-            ImGui::ColorPicker3("Light Color",
-                                reinterpret_cast<float*>(&directionalLight.
-                                    color));
-        }
-        if (ImGui::CollapsingHeader("Ambient")) {
-            ImGui::ColorPicker4("Ambient",
-                                reinterpret_cast<float*>(&ambient));
-        }
-        ImGui::End();
+                              ImGui::DragFloat("Specular Power",
+                                               &specularPower,
+                                               0.5,
+                                               1.0,
+                                               20.0);
+                              if (ImGui::CollapsingHeader("Light Color")) {
+                                  ImGui::ColorPicker3("Light Color",
+                                      reinterpret_cast<float*>(&directionalLight
+                                          .
+                                          color));
+                              }
+                              if (ImGui::CollapsingHeader("Ambient")) {
+                                  ImGui::ColorPicker4("Ambient",
+                                      reinterpret_cast<float*>(&ambient));
+                              }
+                          });
 
         rlImGuiEnd(); // Imgui END ~~~~~~~~~~~
 
