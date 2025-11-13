@@ -6,6 +6,9 @@
 #include "baleine_type/primitive.h"
 #include "baleine_type/memory.h"
 #include "rlImGui.h"
+#include "ImGuizmo.h"
+#include "gui_helper.h"
+#include "imgui_internal.h"
 
 #include "render/mod.h"
 
@@ -90,8 +93,13 @@ int main() {
                DEFAULT_WINDOW_HEIGHT,
                "Little Raylib Shader Playground");
 
+    SetTargetFPS(120);
+
     // Setup Imgui
     rlImGuiSetup(true);
+
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     InitImguiStyle();
 
@@ -123,6 +131,8 @@ int main() {
     f32 specularCoefficient = 0.6f;
     auto ambient = Vector4(0.1f, 0.1f, 0.1f, 1.f);
 
+    Matrix modelMatrix = MatrixTranslate(0, 20.0, 0);
+
     while (!WindowShouldClose()) {
         auto rayPos = (Vector3){0.0, 25.0, 0.0};
         UpdateCamera(&camera, CAMERA_ORBITAL);
@@ -136,25 +146,26 @@ int main() {
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        BeginMode3D(camera); // 3D BEGIN =============
-        blinnPhong->BeginMode();
-        DrawModel(car, Vector3Zero(), .1f, WHITE);
-        blinnPhong->EndMode();
+        rlImGuiBegin(); // Imgui NEW FRAME ==========
 
-        DrawLine3D(rayPos,
-                   Vector3Add(
-                       Vector3Scale(
-                           Vector3Normalize(directionalLight.direction),
-                           5.0f),
-                       rayPos),
-                   BLUE);
-        DrawSphere(rayPos, .7f, BLUE);
+        ImGui::DockSpaceOverViewport();
 
-        EndMode3D(); // 3D END ~~~~~~~~~~~~
+        ImGui::Begin("Scene");
+        ImGuizmo::SetOrthographic(false);
+        ImGuizmo::BeginFrame();
+        ImGuizmo::SetDrawlist(ImGui::GetCurrentWindow()->DrawList);
+        ImGuizmo::SetRect(0,
+                          0,
+                          (float)GetScreenWidth(),
+                          (float)GetScreenHeight());
 
-        DrawFPS(10, 10);
+        ManipulateMatrix(modelMatrix, camera, ImGuizmo::TRANSLATE, ImGuizmo::WORLD);
 
-        rlImGuiBegin(); // Imgui BEGIN ==========
+        ImGui::End();
+
+        ImGui::Begin("Info");
+        ImGui::LabelText(ImGuizmo::IsUsing() ? "Using": "Not Using", "");
+
         ImGui::DragFloat3("Light Direction",
                           reinterpret_cast<float*>(&directionalLight.
                               direction));
@@ -166,6 +177,7 @@ int main() {
                            &specularCoefficient,
                            0.0,
                            1.0);
+
         ImGui::DragFloat("Specular Power", &specularPower, 0.5, 1.0, 20.0);
         if (ImGui::CollapsingHeader("Light Color")) {
             ImGui::ColorPicker3("Light Color",
@@ -176,7 +188,28 @@ int main() {
             ImGui::ColorPicker4("Ambient",
                                 reinterpret_cast<float*>(&ambient));
         }
+        ImGui::End();
         rlImGuiEnd(); // Imgui END ~~~~~~~~~~~
+
+        // =========== 3D BEGIN =============
+        BeginMode3D(camera);
+        blinnPhong->BeginMode();
+        // DrawModel(car, Vector3Zero(), .1f, WHITE);
+        blinnPhong->EndMode();
+
+        DrawLine3D(rayPos,
+                   Vector3Add(
+                       Vector3Scale(
+                           Vector3Normalize(directionalLight.direction),
+                           5.0f),
+                       rayPos),
+                   BLUE);
+        DrawSphere(rayPos, .7f, BLUE);
+
+        EndMode3D();
+        // #### 3D END #####
+
+        DrawFPS(10, 10);
 
         EndDrawing();
     }

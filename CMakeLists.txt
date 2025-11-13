@@ -30,7 +30,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY
 )
 
 # target link here!
-target_link_libraries(${PROJECT_NAME} raylib BaleineType rlImGui)
+target_link_libraries(${PROJECT_NAME} raylib BaleineType ImGui rlImGui ImGuizmo)
 
 # Checks if OSX and links appropriate frameworks (Only required on MacOS)
 if (APPLE)
