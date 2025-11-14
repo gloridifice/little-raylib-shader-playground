@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
 
-set(RAYLIB_VERSION 5.0)
+set(RAYLIB_VERSION 5.5)
 
 FetchContent_Declare(
         raylib
@@ -30,7 +30,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY
 )
 
 # target link here!
-target_link_libraries(${PROJECT_NAME} raylib BaleineType ImGui rlImGui ImGuizmo)
+target_link_libraries(${PROJECT_NAME} raylib BaleineType ImGui rlImGui ImGuizmo raylib_cpp)
 
 # Checks if OSX and links appropriate frameworks (Only required on MacOS)
 if (APPLE)

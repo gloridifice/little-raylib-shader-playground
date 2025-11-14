@@ -2,6 +2,7 @@
 
 #include "baleine_type/string.h"
 #include "raylib.h"
+#include "../raylib_types.h"
 #include "baleine_type/primitive.h"
 
 #define DEFINE_SHADER_UPDATE_FUNC(NAME, LOC_NAME, TYPE, UNIFORM_TYPE) \
@@ -12,9 +13,9 @@ SetShaderValue(raylibShader, LOC_NAME, &value, UNIFORM_TYPE); \
 using namespace baleine;
 
 struct DirectionalLight {
-    Vector3 direction;
-    Vector3 color;
-    f32 intensity;
+    Vec3 direction;
+    Vec3 color;
+    f32 intensity {};
 };
 
 class UniversalShaderContext {
@@ -24,7 +25,7 @@ protected:
 
 public:
     // BEGIN Lazy Load ======
-    Shader raylibShader{};
+    Shader raylibShader {};
 
 private:
     // Locations ----
@@ -44,7 +45,7 @@ public:
     void UpdateDirectionalLight(const DirectionalLight& light) const;
     DEFINE_SHADER_UPDATE_FUNC(ViewWorldPos,
                               viewWorldPosLoc,
-                              Vector3,
+                              Vec3,
                               SHADER_UNIFORM_VEC3);
 
     void BeginMode() const {
@@ -80,7 +81,7 @@ public:
         ambientLoc = GetShaderLocation(raylibShader, "ambient");
     }
 
-    DEFINE_SHADER_UPDATE_FUNC(Ambient, ambientLoc, Vector4, SHADER_UNIFORM_VEC4);
+    DEFINE_SHADER_UPDATE_FUNC(Ambient, ambientLoc, Vec4, SHADER_UNIFORM_VEC4);
 
     DEFINE_SHADER_UPDATE_FUNC(SpecularPower,
                               specularPowerLoc,

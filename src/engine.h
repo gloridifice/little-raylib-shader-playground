@@ -3,13 +3,13 @@
 #include "rlImGui.h"
 #include "ImGuizmo.h"
 #include "imgui_internal.h"
-#include "raylib.h"
+#include "raylib-cpp.hpp"
 #include "raymath.h"
 #include "gui_helper.h"
 #include "baleine_type/primitive.h"
 #include "baleine_type/memory.h"
 #include "render/mod.h"
-#include "raylib_helper.h"
+#include "raylib_types.h"
 
 using namespace baleine;
 
@@ -89,51 +89,79 @@ class EngineCore {
         sceneWidth,
         sceneHeight);
 
-    Camera camera = {
-        (Vector3){0.0f, 20.0f, 48.0f},
-        (Vector3){0.0f, 1.5f, 0.0f},
-        (Vector3){0.0f, 1.0f, 0.0f},
+    raylib::Camera camera = {
+        Vec3{0.0f, 20.0f, 48.0f},
+        Vec3{0.0f, 1.5f, 0.0f},
+        Vec3{0.0f, 1.0f, 0.0f},
         45.0f,
         CAMERA_PERSPECTIVE
     };
+    f32 cameraSpeed = 30.f;
 
     DirectionalLight directionalLight = {
-        .direction = (Vector3){-1.0f, -1.0f, 0.0f},
-        .color = (Vector3){1.0f, 0.0f, 1.0f},
+        .direction = Vec3{-1.0f, -1.0f, 0.0f},
+        .color = Vec3{1.0f, 0.0f, 1.0f},
         .intensity = 1.0f
     };
 
     f32 specularPower = 8.0f;
     f32 diffuseCoefficient = 0.6f;
     f32 specularCoefficient = 0.6f;
-    Vector4 ambient = {0.1f, 0.1f, 0.1f, 1.f};
+    Vec4 ambient = {0.1f, 0.1f, 0.1f, 1.f};
 
     Transform directionalLightTransform = {
-        .translation = Vector3{0.0, 22.0, 0.0},
-        .rotation = QuaternionFromAxisAngle(Vector3{0.0, -1.0, 0.0}, 0.f),
+        .translation = Vec3{0.0, 22.0, 0.0},
+        .rotation = QuaternionFromAxisAngle(Vec3{0.0, -1.0, 0.0}, 0.f),
         .scale = Vector3One(),
     };
-    Model car;
+    raylib::Model car{"assets/models/old_car_new.glb"};
 
-    void Update() {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+    void UpdateSceneCamera() {
+        auto deltaTime = GetFrameTime();
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsKeyPressed(KEY_L)) {
             HideCursor();
         }
-        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) || IsKeyReleased(KEY_L)) {
             ShowCursor();
         }
-        if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) || IsKeyDown(KEY_L)) {
             UpdateCamera(&camera, CAMERA_FIRST_PERSON);
+
+            auto dir = Vec3();
+            if (IsKeyDown(KEY_W)) {
+                dir.z -= 1;
+            }
+            if (IsKeyDown(KEY_S)) {
+                dir.z += 1;
+            }
+            if (IsKeyDown(KEY_A)) {
+                dir.x -= 1;
+            }
+            if (IsKeyDown(KEY_D)) {
+                dir.x += 1;
+            }
+
+            dir = Vector3RotateByQuaternion(dir,
+                                            QuaternionFromVector3ToVector3(
+                                                Vec3{0.0f, 1.0f, 0.0f},
+                                                camera.up));
             if (IsKeyDown(KEY_SPACE)) {
-                camera.position.y += 10.0f * GetFrameTime();
+                dir.y += 1;
             }
             if (IsKeyDown(KEY_LEFT_SHIFT)) {
-                camera.position.y -= 10.0f * GetFrameTime();
+                dir.y -= 1;
             }
+
+            camera.position = dir * (deltaTime * cameraSpeed) + camera.position;
         }
+    }
+
+    void Update() {
+        UpdateSceneCamera();
 
         directionalLight.direction = Vector3RotateByQuaternion(
-            (Vector3){0.0f, 0.0f, -1.0f},
+            (Vec3){0.0f, 0.0f, -1.0f},
             directionalLightTransform.rotation);
         blinnPhongShader->UpdateViewWorldPos(camera.position);
         blinnPhongShader->UpdateDiffuseCoefficient(diffuseCoefficient);
@@ -151,110 +179,136 @@ class EngineCore {
 
     void RenderScene() {
         BeginTextureMode(sceneRenderTarget);
-        ClearBackground(RAYWHITE);
+        {
+            ClearBackground(RAYWHITE);
 
-        // =========== 3D BEGIN =============
-        BeginMode3D(camera);
-        blinnPhongShader->BeginMode();
-        DrawModel(car, Vector3Zero(), .1f, WHITE);
-        blinnPhongShader->EndMode();
+            // =========== 3D BEGIN =============
 
-        DrawLine3D(directionalLightTransform.translation,
-                   Vector3Add(
-                       Vector3Scale(
-                           Vector3Normalize(directionalLight.direction),
-                           5.0f),
-                       directionalLightTransform.translation),
-                   BLUE);
-        DrawSphere(directionalLightTransform.translation, .7f, BLUE);
+            camera.BeginMode();
+            {
+                blinnPhongShader->BeginMode();
+                {
+                    car.Draw(Vec3(), 5.f);
+                }
+                blinnPhongShader->EndMode();
 
-        EndMode3D();
-        // #### 3D END #####
+                auto dirLightPos = directionalLightTransform.translation;
+                DrawLine3D(dirLightPos,
+                           directionalLight.direction.Normalize() * 5.0f +
+                           dirLightPos,
+                           BLUE);
+                DrawSphere(dirLightPos, .7f, BLUE);
+            }
+            camera.EndMode();
+            // #### 3D END #####
 
-        DrawFPS(10, 10);
+            DrawFPS(10, 10);
+        }
         EndTextureMode();
     }
 
     void RenderGui() {
         BeginDrawing();
-        rlImGuiBegin(); // Imgui NEW FRAME ==========
+        {
+            rlImGuiBegin(); // Imgui NEW FRAME ==========
+            {
+                ImGui::DockSpaceOverViewport();
+                // Make a full window docking space
 
-        ImGui::DockSpaceOverViewport(); // Make a full window docking space
+                ImWindow("Scene",
+                         [&] {
+                             auto regionSize =
+                                 ImGui::GetContentRegionAvail();
+                             auto windowPos = ImGui::GetWindowPos();
+                             auto regionRelative =
+                                 ImGui::GetWindowContentRegionMin();
+                             sceneWidth = (i32)regionSize.x;
+                             sceneHeight = (i32)regionSize.y;
 
-        ImGuiWindowRegion("Scene",
-                          [&] {
-                              auto regionSize = ImGui::GetContentRegionAvail();
-                              auto windowPos = ImGui::GetWindowPos();
-                              auto regionRelative =
-                                  ImGui::GetWindowContentRegionMin();
-                              sceneWidth = (i32)regionSize.x;
-                              sceneHeight = (i32)regionSize.y;
+                             ImGui::Image(
+                                 (ImTextureID)(uintptr_t)
+                                 sceneRenderTarget.
+                                 texture.id,
+                                 regionSize,
+                                 ImVec2(0, 1),
+                                 ImVec2(1, 0)
+                             );
 
-                              ImGui::Image(
-                                  (ImTextureID)(uintptr_t)sceneRenderTarget.
-                                  texture.id,
-                                  regionSize,
-                                  ImVec2(0, 1),
-                                  ImVec2(1, 0)
-                              );
+                             ImGuizmo::SetOrthographic(false);
+                             ImGuizmo::BeginFrame();
+                             ImGuizmo::SetDrawlist(
+                                 ImGui::GetCurrentWindow()->DrawList);
 
-                              ImGuizmo::SetOrthographic(false);
-                              ImGuizmo::BeginFrame();
-                              ImGuizmo::SetDrawlist(
-                                  ImGui::GetCurrentWindow()->DrawList);
+                             ImGuizmo::SetRect(
+                                 regionRelative.x + windowPos.x,
+                                 regionRelative.y + windowPos.y,
+                                 regionSize.x,
+                                 regionSize.y
+                             );
 
-                              ImGuizmo::SetRect(regionRelative.x + windowPos.x,
-                                                regionRelative.y + windowPos.y,
-                                                regionSize.x,
-                                                regionSize.y
-                              );
+                             ManipulateTransform(
+                                 directionalLightTransform,
+                                 camera,
+                                 ImGuizmo::ROTATE,
+                                 ImGuizmo::WORLD);
+                         });
 
-                              ManipulateTransform(directionalLightTransform,
-                                                  camera,
-                                                  ImGuizmo::ROTATE,
-                                                  ImGuizmo::WORLD);
-                          });
+                ImWindow("Info",
+                         [&] {
+                             ImGui::SeparatorText("Camera");
 
-        ImGuiWindowRegion("Info",
-                          [&] {
-                              ImGui::LabelText("Camera Position",
-                                               "%.2f, %.2f, %.2f",
-                                               camera.position.x,
-                                               camera.position.y,
-                                               camera.position.z);
+                             ImGui::LabelText("Camera Position",
+                                              "%.2f, %.2f, %.2f",
+                                              camera.position.x,
+                                              camera.position.y,
+                                              camera.position.z);
 
-                              ImGui::DragFloat3("Light Direction",
-                                                reinterpret_cast<float*>(&
-                                                    directionalLight.
-                                                    direction));
-                              ImGui::SliderFloat("Diffuse Coefficient",
-                                                 &diffuseCoefficient,
-                                                 0.0,
-                                                 1.0);
-                              ImGui::SliderFloat("Specular Coefficient",
-                                                 &specularCoefficient,
-                                                 0.0,
-                                                 1.0);
+                             ImGui::DragFloat("Camera Speed",
+                                              &cameraSpeed,
+                                              1.0f);
 
-                              ImGui::DragFloat("Specular Power",
-                                               &specularPower,
-                                               0.5,
-                                               1.0,
-                                               20.0);
-                              if (ImGui::CollapsingHeader("Light Color")) {
-                                  ImGui::ColorPicker3("Light Color",
-                                      reinterpret_cast<float*>(&directionalLight
-                                          .
-                                          color));
-                              }
-                              if (ImGui::CollapsingHeader("Ambient")) {
-                                  ImGui::ColorPicker4("Ambient",
-                                      reinterpret_cast<float*>(&ambient));
-                              }
-                          });
+                             ImGui::SeparatorText("Light");
 
-        rlImGuiEnd(); // Imgui END ~~~~~~~~~~~
+                             ImGui::LabelText("Light Direction",
+                                              "%.2f, %.2f, %.2f",
+                                              directionalLight.direction.x,
+                                              directionalLight.direction.y,
+                                              directionalLight.direction.z
+                             );
 
+                             if (ImGui::CollapsingHeader(
+                                 "Light Color")) {
+                                 ImGui::ColorPicker3("Light Color",
+                                                     reinterpret_cast<float*>(&
+                                                         directionalLight
+                                                         .
+                                                         color));
+                             }
+
+                             ImGui::SeparatorText("Blinn Phong");
+                             ImGui::SliderFloat("Diffuse Coefficient",
+                                                &diffuseCoefficient,
+                                                0.0,
+                                                1.0);
+                             ImGui::SliderFloat("Specular Coefficient",
+                                                &specularCoefficient,
+                                                0.0,
+                                                1.0);
+
+                             ImGui::DragFloat("Specular Power",
+                                              &specularPower,
+                                              0.5,
+                                              1.0,
+                                              20.0);
+                             if (ImGui::CollapsingHeader("Ambient")) {
+                                 ImGui::ColorPicker4("Ambient",
+                                                     reinterpret_cast<float*>(&
+                                                         ambient));
+                             }
+                         });
+            }
+            rlImGuiEnd(); // Imgui END ~~~~~~~~~~~
+        }
         EndDrawing();
     }
 
@@ -270,8 +324,7 @@ public:
     }
 
     /// Startup
-    explicit EngineCore():
-        car(LoadModel("assets/models/old_car_new.glb")) {
+    explicit EngineCore() {
         rlImGuiSetup(true);
 
         ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -300,6 +353,7 @@ public:
 
 class Engine {
 private:
+    Unique<raylib::Window> window;
     Unique<EngineCore> core;
 
 public:
@@ -308,15 +362,15 @@ public:
 
     void Run() {
         SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-        InitWindow(DEFAULT_WINDOW_WIDTH,
-                   DEFAULT_WINDOW_HEIGHT,
-                   "Little Raylib Shader Playground");
+        window = std::make_unique<raylib::Window>(DEFAULT_WINDOW_WIDTH,
+                                                  DEFAULT_WINDOW_HEIGHT,
+                                                  "Little Raylib Shader Playground");
 
         SetTargetFPS(120);
 
         core = std::make_unique<EngineCore>();
         core->Loop();
 
-        CloseWindow();
+        raylib::Window::Close();
     }
 };

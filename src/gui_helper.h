@@ -18,11 +18,11 @@ bool ManipulateFloat16(baleine::f32 matrix[16],
                        ImGuizmo::MODE mode);
 
 bool ManipulateTransform(Transform& transform,
-                       Camera& camera,
-                       ImGuizmo::OPERATION operation,
-                       ImGuizmo::MODE mode);
+                         Camera& camera,
+                         ImGuizmo::OPERATION operation,
+                         ImGuizmo::MODE mode);
 
-inline void ImGuiWindowRegion(const char* name, baleine::Fn<void()> function) {
+inline void ImWindow(const char* name, baleine::Fn<void()> function) {
     ImGui::Begin(name);
     function();
     ImGui::End();
