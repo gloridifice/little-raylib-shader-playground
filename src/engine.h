@@ -119,10 +119,10 @@ class EngineCore {
     void UpdateSceneCamera() {
         auto deltaTime = GetFrameTime();
 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsKeyPressed(KEY_L)) {
+        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsKeyPressed(KEY_LEFT_ALT)) {
             HideCursor();
         }
-        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) || IsKeyReleased(KEY_L)) {
+        if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) || IsKeyReleased(KEY_LEFT_ALT)) {
             ShowCursor();
         }
         if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) || IsKeyDown(KEY_L)) {
