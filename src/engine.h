@@ -10,6 +10,7 @@
 #include "baleine_type/memory.h"
 #include "render/mod.h"
 #include "raylib_types.h"
+#include "render/post_processing.h"
 
 using namespace baleine;
 
@@ -84,14 +85,16 @@ static void SetupMyImguiStyle() {
 }
 
 class EngineCore {
+    PostProcessingManager postProcessingManager;
+
     i32 sceneHeight = 400, sceneWidth = 300;
     RenderTexture2D sceneRenderTarget = LoadRenderTexture(
         sceneWidth,
         sceneHeight);
 
     raylib::Camera camera = {
-        Vec3{0.0f, 20.0f, 48.0f},
-        Vec3{0.0f, 1.5f, 0.0f},
+        Vec3{0.0f, 2.0f, 4.0f},
+        Vec3{0.0f, 0.f, 0.0f},
         Vec3{0.0f, 1.0f, 0.0f},
         45.0f,
         CAMERA_PERSPECTIVE
@@ -110,7 +113,7 @@ class EngineCore {
     Vec4 ambient = {0.1f, 0.1f, 0.1f, 1.f};
 
     Transform directionalLightTransform = {
-        .translation = Vec3{0.0, 22.0, 0.0},
+        .translation = Vec3{0.0, 6.0, 0.0},
         .rotation = QuaternionFromAxisAngle(Vec3{0.0, -1.0, 0.0}, 0.f),
         .scale = Vector3One(),
     };
@@ -157,6 +160,12 @@ class EngineCore {
         }
     }
 
+    void ResizeSceneViewport(i32 width, i32 height) {
+        UnloadRenderTexture(sceneRenderTarget);
+        sceneRenderTarget = LoadRenderTexture(sceneWidth, sceneHeight);
+        postProcessingManager.Resize(width, height);
+    }
+
     void Update() {
         UpdateSceneCamera();
 
@@ -172,8 +181,7 @@ class EngineCore {
 
         auto& texture = sceneRenderTarget.texture;
         if (texture.height != sceneHeight || texture.width != sceneWidth) {
-            UnloadRenderTexture(sceneRenderTarget);
-            sceneRenderTarget = LoadRenderTexture(sceneWidth, sceneHeight);
+            ResizeSceneViewport(sceneWidth, sceneHeight);
         }
     }
 
@@ -186,9 +194,10 @@ class EngineCore {
 
             camera.BeginMode();
             {
+                DrawGrid(20.0f, 1.0f);
                 blinnPhongShader->BeginMode();
                 {
-                    car.Draw(Vec3(), 5.f);
+                    car.Draw(Vec3(), 1.f);
                 }
                 blinnPhongShader->EndMode();
 
@@ -208,6 +217,7 @@ class EngineCore {
     }
 
     void RenderGui() {
+        postProcessingManager.Draw(sceneRenderTarget);
         BeginDrawing();
         {
             rlImGuiBegin(); // Imgui NEW FRAME ==========
@@ -225,10 +235,11 @@ class EngineCore {
                              sceneWidth = (i32)regionSize.x;
                              sceneHeight = (i32)regionSize.y;
 
+                             auto sceneTexture = sceneRenderTarget.texture;
+
                              ImGui::Image(
                                  (ImTextureID)(uintptr_t)
-                                 sceneRenderTarget.
-                                 texture.id,
+                                 sceneTexture.id,
                                  regionSize,
                                  ImVec2(0, 1),
                                  ImVec2(1, 0)
@@ -252,6 +263,7 @@ class EngineCore {
                                  ImGuizmo::ROTATE,
                                  ImGuizmo::WORLD);
                          });
+
 
                 ImWindow("Info",
                          [&] {
@@ -324,7 +336,8 @@ public:
     }
 
     /// Startup
-    explicit EngineCore() {
+    explicit EngineCore():
+        postProcessingManager(PostProcessingManager(sceneWidth, sceneHeight)) {
         rlImGuiSetup(true);
 
         ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -341,6 +354,9 @@ public:
         GenTextureMipmaps(&car.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture);
         SetTextureFilter(car.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture,
                          TEXTURE_FILTER_TRILINEAR);
+
+        postProcessingManager.PushShader(
+            LoadShader(0, "assets/shaders/post_processing_template.frag"));
     }
 
     void Loop() {
