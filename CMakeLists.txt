@@ -30,11 +30,19 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY
 )
 
 # target link here!
-target_link_libraries(${PROJECT_NAME} raylib BaleineType ImGui rlImGui ImGuizmo raylib_cpp)
+target_link_libraries(${PROJECT_NAME}
+        raylib
+        BaleineType
+        ImGui
+        rlImGui
+        ImGuizmo
+        raylib_cpp
+        NanoSVG
+)
 
 # Checks if OSX and links appropriate frameworks (Only required on MacOS)
 if (APPLE)
     target_link_libraries(${PROJECT_NAME} "-framework IOKit")
     target_link_libraries(${PROJECT_NAME} "-framework Cocoa")
     target_link_libraries(${PROJECT_NAME} "-framework OpenGL")
-endif()
+endif ()
