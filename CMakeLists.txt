@@ -38,6 +38,7 @@ target_link_libraries(${PROJECT_NAME}
         ImGuizmo
         raylib_cpp
         NanoSVG
+        EnTT
 )
 
 # Checks if OSX and links appropriate frameworks (Only required on MacOS)

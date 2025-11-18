@@ -9,6 +9,7 @@
 
 using namespace baleine;
 
+namespace HORiz {
 static Vec<String> ICONS_REGISTER = {
     "axes", "video-camera"
 };
@@ -28,3 +29,4 @@ public:
         map.clear();
     }
 };
+}

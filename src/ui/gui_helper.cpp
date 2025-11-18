@@ -67,7 +67,7 @@ bool ManipulateTransform(Transform& transform,
 
 using namespace ImGui;
 void HORizImGui::ShowIcon(const char* name, const Vec2 size) {
-    auto& texture = IconManager::Instance().map[name];
+    auto& texture = HORiz::IconManager::Instance().map[name];
     auto s = ImVec2(size.x, size.y);
     ImGui::Image(texture.id, s);
 }

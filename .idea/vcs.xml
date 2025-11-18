@@ -3,6 +3,5 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/thirdparty/baleine-type" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/thirdparty/nanosvg" vcs="Git" />
   </component>
 </project>

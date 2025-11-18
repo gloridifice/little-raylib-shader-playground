@@ -5,6 +5,8 @@
 #include "nanosvgrast.h"
 
 
+namespace HORiz {
+
 void IconManager::Load() {
     for (auto& name : ICONS_REGISTER) {
         auto filename = std::format("assets/icons/{}.svg", name);
@@ -19,10 +21,10 @@ void IconManager::Load() {
             shape->fill.type = NSVG_PAINT_COLOR; // 填充类型 = 颜色
             shape->fill.color = 0xFFFFFFFF; // 强制白色
 
-            shape->stroke.type  = NSVG_PAINT_COLOR;
+            shape->stroke.type = NSVG_PAINT_COLOR;
             shape->stroke.color = 0xFFFFFFFF;
         }
-        nsvgRasterize(rast, svg, 0, 0, (float) scale, rgba, w, h, w * 4);
+        nsvgRasterize(rast, svg, 0, 0, (float)scale, rgba, w, h, w * 4);
         nsvgDelete(svg);
 
         Image img = {
@@ -37,4 +39,5 @@ void IconManager::Load() {
 
         free(rgba);
     }
+}
 }
