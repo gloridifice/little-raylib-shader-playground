@@ -1,0 +1,9 @@
+[package]
+name = "code-generator"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clang-sys = "1.8.1"
+glob = "0.3.3"
+walkdir = "2.5.0"

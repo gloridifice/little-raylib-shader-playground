@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.31)
+
+set(CMAKE_FIND_DEBUG_MODE TRUE)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-implicit-const-int-float-conversion")
+
 project(my_raylib)
 set(CMAKE_CXX_STANDARD 20)
 
@@ -39,6 +43,7 @@ target_link_libraries(${PROJECT_NAME}
         raylib_cpp
         NanoSVG
         EnTT
+        RTTR::Core_STL
 )
 
 # Checks if OSX and links appropriate frameworks (Only required on MacOS)
