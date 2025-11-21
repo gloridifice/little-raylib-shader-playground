@@ -10,13 +10,14 @@
 #include "raylib_types.h"
 #include "render/post_processing.h"
 #include "entt.hpp"
-#include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/HIServices.framework/Versions/A/Headers/AXRoleConstants.h"
 #include "baleine_type/functional.h"
+#include "ecs/mod.h"
 #include "utils/singleton_macro.h"
 
 using namespace baleine;
 
 namespace HORiz {
+
 constexpr i32 DEFAULT_WINDOW_WIDTH = 1024;
 constexpr i32 DEFAULT_WINDOW_HEIGHT = 576;
 
@@ -30,13 +31,15 @@ static ImFont* FONT_LIGHT;
 
 static void SetupMyImguiStyle();
 
+/// A class that manage render target.
 class Viewport {
 private:
     i32 width, height;
     RenderTexture2D renderTarget;
 
 public:
-    Vec<Fn<void(i32, i32)>> onResize {};
+    Vec<Fn<void(i32, i32)>> onResize{};
+
     explicit Viewport(const i32 width, const i32 height):
         width(width),
         height(height),
@@ -65,6 +68,9 @@ public:
 class EngineCore {
     PostProcessingManager postProcessingManager;
     Viewport sceneViewport;
+    World world;
+
+    #pragma region In-Scene-Variables
 
     MyCamera camera;
     CameraController controller;
@@ -88,9 +94,9 @@ class EngineCore {
         .scale = Vector3One(),
     };
 
-    raylib::Model car{"assets/models/old_car_new.glb"};
+    raylib::Model car{};
 
-    entt::registry world;
+    #pragma endregion
 
     void ResizeSceneViewport(i32 width, i32 height);
 

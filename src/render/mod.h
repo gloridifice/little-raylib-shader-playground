@@ -1,8 +1,10 @@
 #pragma once
 
+#include "light.h"
 #include "baleine_type/string.h"
 #include "raylib.h"
 #include "../raylib_types.h"
+#include "../ecs/mod.h"
 #include "baleine_type/primitive.h"
 
 #define DEFINE_SHADER_UPDATE_FUNC(NAME, LOC_NAME, TYPE, UNIFORM_TYPE) \
@@ -12,20 +14,18 @@ SetShaderValue(raylibShader, LOC_NAME, &value, UNIFORM_TYPE); \
 
 using namespace baleine;
 
-struct DirectionalLight {
-    Vec3 direction;
-    Vec3 color;
-    f32 intensity {};
-};
+namespace HORiz {
 
-class UniversalShaderContext {
+#pragma region Classes
+
+class ShaderContext {
 protected:
     String vsFilename;
     String fsFilename;
 
 public:
     // BEGIN Lazy Load ======
-    Shader raylibShader {};
+    Shader raylibShader{};
 
 private:
     // Locations ----
@@ -37,8 +37,8 @@ private:
     // END Lazy Load =====
 
 public:
-    virtual ~UniversalShaderContext() = default;
-    explicit UniversalShaderContext(String&& vsFilename, String&& fsFilename);
+    virtual ~ShaderContext() = default;
+    explicit ShaderContext(String&& vsFilename, String&& fsFilename);
 
     virtual void LoadAndInit();
 
@@ -57,7 +57,7 @@ public:
     }
 };
 
-class BlinnPhongShaderContext: public UniversalShaderContext {
+class BlinnPhongShaderContext: public ShaderContext {
 private:
     // BEGIN Lazy Load
     i32 specularPowerLoc = 0;
@@ -68,18 +68,9 @@ private:
     // END Lazy Load
 public:
     BlinnPhongShaderContext(String&& vsFilename, String&& fsFilename) :
-        UniversalShaderContext(std::move(vsFilename), std::move(fsFilename)) {}
+        ShaderContext(std::move(vsFilename), std::move(fsFilename)) {}
 
-    virtual void LoadAndInit() override {
-        UniversalShaderContext::LoadAndInit();
-
-        specularPowerLoc = GetShaderLocation(raylibShader, "specularPower");
-        diffuseCoefficientLoc = GetShaderLocation(raylibShader,
-                                                  "diffuseCoefficient");
-        specularCoefficientLoc = GetShaderLocation(raylibShader,
-                                                  "specularCoefficient");
-        ambientLoc = GetShaderLocation(raylibShader, "ambient");
-    }
+    virtual void LoadAndInit() override;
 
     DEFINE_SHADER_UPDATE_FUNC(Ambient, ambientLoc, Vec4, SHADER_UNIFORM_VEC4);
 
@@ -96,3 +87,13 @@ public:
                               f32,
                               SHADER_UNIFORM_FLOAT);
 };
+
+#pragma endregion
+
+#pragma region Systems
+
+void SysDrawModels(World& world);
+
+#pragma endregion
+
+}

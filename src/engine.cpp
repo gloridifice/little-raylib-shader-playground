@@ -71,11 +71,12 @@ void EngineCore::RenderScene() {
         camera.camera.BeginMode();
         {
             DrawGrid(20.0f, 1.0f);
-            blinnPhongShader->BeginMode();
-            {
-                car.Draw(Vec3(), 1.f);
-            }
-            blinnPhongShader->EndMode();
+            SysDrawModels(world);
+            // blinnPhongShader->BeginMode();
+            // {
+            //     car.Draw(Vec3(), 1.f);
+            // }
+            // blinnPhongShader->EndMode();
 
             auto dirLightPos = directionalLightTransform.translation;
             DrawLine3D(dirLightPos,
@@ -228,9 +229,9 @@ EngineCore::EngineCore():
 
     blinnPhongShader->LoadAndInit();
 
-    car.materials[0].shader = blinnPhongShader->raylibShader;
-    car.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LoadTexture(
-        "assets/models/old_car_d.png");
+    // car.materials[0].shader = blinnPhongShader->raylibShader;
+    // car.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LoadTexture(
+    //     "assets/models/old_car_d.png");
 
     GenTextureMipmaps(&car.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture);
     SetTextureFilter(car.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture,
@@ -238,6 +239,13 @@ EngineCore::EngineCore():
 
     // postProcessingManager.PushShader(
     //     LoadShader(0, "assets/shaders/post_processing_template.frag"));
+
+    // Spawn Models;
+    {
+        auto entity = world.create();
+        world.emplace<raylib::Model>(entity, "assets/models/old_car_new.glb");
+        world.emplace<raylib::Transform>(entity);
+    }
 }
 
 void Engine::Run() {

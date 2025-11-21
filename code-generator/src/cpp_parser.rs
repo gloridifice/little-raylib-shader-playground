@@ -3,9 +3,29 @@ use std::ffi::{CStr, CString};
 use std::path::Path;
 
 #[derive(Debug)]
+pub struct CppField {
+    pub name: String,
+    pub ty: String,
+    pub ty_name_space: String,
+}
+
+#[derive(Debug)]
 pub struct CppStruct {
     pub name: String,
-    pub fields: Vec<(String, String)>,
+    pub name_space: String,
+    pub fields: Vec<CppField>,
+}
+
+impl CppField {
+    pub fn get_ty_with_namespace(&self) -> String {
+        format!("{}::{}", &self.ty_name_space, &self.ty)
+    }
+}
+
+impl CppStruct {
+    pub fn get_name_with_namespace(&self) -> String {
+        format!("{}::{}", &self.name_space, &self.name)
+    }
 }
 
 fn cursor_spelling(cursor: CXCursor) -> String {
@@ -24,7 +44,49 @@ fn type_spelling(ty: CXType) -> String {
     }
 }
 
-pub fn parse_header(path: &Path) -> Vec<CppStruct> {
+fn get_type_namespace(ty: CXType) -> String {
+    unsafe {
+        // 获取类型的声明 Cursor
+        let decl_cursor = clang_getTypeDeclaration(ty);
+
+        if clang_Cursor_isNull(decl_cursor) != 0 {
+            return "".to_string();
+        }
+
+        get_namespace(decl_cursor)
+    }
+}
+
+fn get_namespace(cursor: CXCursor) -> String {
+    let mut names: Vec<String> = Vec::new();
+    let mut cur = cursor;
+
+    unsafe {
+        loop {
+            let parent = clang_getCursorSemanticParent(cur);
+            let kind = clang_getCursorKind(parent);
+
+            if kind == CXCursor_Namespace {
+                let ns = cursor_spelling(parent);
+                if !ns.is_empty() {
+                    names.push(ns);
+                }
+            }
+
+            // 到顶层（TU）就停止
+            if kind == CXCursor_TranslationUnit {
+                break;
+            }
+
+            cur = parent;
+        }
+    }
+
+    names.reverse();
+    names.join("::")
+}
+
+pub fn parse_header(path: &Path, args: &Vec<CString>) -> Vec<CppStruct> {
     let mut structs: Vec<CppStruct> = Vec::new();
 
     unsafe {
@@ -33,11 +95,6 @@ pub fn parse_header(path: &Path) -> Vec<CppStruct> {
 
         let c_path = CString::new(path.to_str().unwrap()).unwrap();
 
-        let args: Vec<CString> = vec![
-            CString::new("-x").unwrap(),
-            CString::new("c++").unwrap(),
-            CString::new("-std=c++20").unwrap(),
-        ];
         let c_args: Vec<*const i8> = args.iter().map(|a| a.as_ptr()).collect();
 
         let tu = clang_parseTranslationUnit(
@@ -87,8 +144,11 @@ extern "C" fn visitor(
                 return CXChildVisit_Continue;
             }
 
+            let name_space = get_namespace(cursor);
+
             let mut s = CppStruct {
                 name,
+                name_space,
                 fields: Vec::new(),
             };
 
@@ -111,9 +171,15 @@ extern "C" fn field_visitor(
             let s = &mut *(data as *mut CppStruct);
 
             let field_name = cursor_spelling(cursor);
-            let field_type = type_spelling(clang_getCursorType(cursor));
+            let field_ty = clang_getCursorType(cursor);
+            let field_type = type_spelling(field_ty);
+            let field_namespace = get_type_namespace(field_ty);
 
-            s.fields.push((field_type, field_name));
+            s.fields.push(CppField {
+                name: field_name,
+                ty: field_type,
+                ty_name_space: field_namespace,
+            });
         }
     }
 

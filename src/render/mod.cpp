@@ -1,11 +1,12 @@
 #include "mod.h"
 
-UniversalShaderContext::UniversalShaderContext(String&& vsFilename,
-                                               String&& fsFilename) :
+namespace HORiz {
+ShaderContext::ShaderContext(String&& vsFilename,
+                             String&& fsFilename) :
     vsFilename(std::move(vsFilename)),
     fsFilename(std::move(fsFilename)) {}
 
-void UniversalShaderContext::LoadAndInit() {
+void ShaderContext::LoadAndInit() {
     raylibShader = LoadShader(vsFilename.c_str(), fsFilename.c_str());
     viewWorldPosLoc = GetShaderLocation(raylibShader, "viewWorldPos");
     directionalLightColorLoc = GetShaderLocation(
@@ -19,7 +20,7 @@ void UniversalShaderContext::LoadAndInit() {
         "directionalLight.intensity");
 }
 
-void UniversalShaderContext::UpdateDirectionalLight(
+void ShaderContext::UpdateDirectionalLight(
     const DirectionalLight& light) const {
     SetShaderValue(raylibShader,
                    directionalLightIntensityLoc,
@@ -33,4 +34,24 @@ void UniversalShaderContext::UpdateDirectionalLight(
                    directionalLightDirectionLoc,
                    &light.direction,
                    SHADER_UNIFORM_VEC3);
+}
+
+void BlinnPhongShaderContext::LoadAndInit() {
+    ShaderContext::LoadAndInit();
+
+    specularPowerLoc = GetShaderLocation(raylibShader, "specularPower");
+    diffuseCoefficientLoc = GetShaderLocation(raylibShader,
+                                              "diffuseCoefficient");
+    specularCoefficientLoc = GetShaderLocation(raylibShader,
+                                               "specularCoefficient");
+    ambientLoc = GetShaderLocation(raylibShader, "ambient");
+}
+
+void SysDrawModels(World& world) {
+    auto models = world.view<raylib::Model, raylib::Transform>();
+    models.each([](const raylib::Model& model, const raylib::Transform& transform) {
+        auto [axis, angle] = transform.rotation.ToAxisAngle();
+        model.Draw(transform.translation, axis, angle, transform.scale);
+    });
+}
 }

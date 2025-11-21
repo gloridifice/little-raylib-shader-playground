@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.31)
 set(CMAKE_FIND_DEBUG_MODE TRUE)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-implicit-const-int-float-conversion")
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 project(my_raylib)
 set(CMAKE_CXX_STANDARD 20)
 

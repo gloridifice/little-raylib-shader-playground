@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../icon.h"
+#include "icon.h"
 #include "imgui.h"
 #include "ImGuizmo.h"
 #include "raylib.h"

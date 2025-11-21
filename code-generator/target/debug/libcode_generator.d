@@ -1,1 +1,1 @@
-/Users/yfan/MyProjects/Cpp/my-raylib/code-generator/target/debug/libcode_generator.rlib: /Users/yfan/MyProjects/Cpp/my-raylib/code-generator/src/cpp_parser.rs /Users/yfan/MyProjects/Cpp/my-raylib/code-generator/src/lib.rs
+/Users/yfan/MyProjects/Cpp/my-raylib/code-generator/target/debug/libcode_generator.rlib: /Users/yfan/MyProjects/Cpp/my-raylib/code-generator/src/cmake_compile_commands.rs /Users/yfan/MyProjects/Cpp/my-raylib/code-generator/src/cpp_parser.rs /Users/yfan/MyProjects/Cpp/my-raylib/code-generator/src/lib.rs

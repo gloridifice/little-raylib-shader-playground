@@ -1,11 +1,16 @@
 
-struct Foo {
-    int aInt;
-    float bFloat;
-    bool cBool;
-};
+
+namespace hello {
+namespace born {
+    struct Foo {
+        int aInt;
+        float bFloat;
+        bool cBool;
+    };
+} // namespace born
+} // namespace hello
 
 class Bar {
-    Foo aFoo;
+    hello::born::Foo aFoo;
     int bInt;
 };
